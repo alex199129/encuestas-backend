@@ -64,7 +64,7 @@ public class EncuestaServiceImpl implements EncuestaService {
                 List<Opcion> opciones = p.getOpciones().stream()
                     .map(o -> Opcion.builder()
                         .texto(o.getTexto())
-                        .pregunta(pregunta) // importante
+                        .pregunta(pregunta) 
                         .build())
                     .toList();
                 pregunta.setOpciones(opciones);
