@@ -5,6 +5,7 @@ import com.davivienda.encuestas.dto.EncuestaPublicaResponse;
 import com.davivienda.encuestas.dto.EncuestaResponse;
 import com.davivienda.encuestas.dto.EncuestaResultadoDTO;
 import com.davivienda.encuestas.dto.PreguntaDTO;
+import com.davivienda.encuestas.dto.OpcionDTO;
 import com.davivienda.encuestas.dto.PreguntaResultadoDTO;
 import com.davivienda.encuestas.dto.RespuestaEstadisticaDTO;
 import com.davivienda.encuestas.dto.RespuestaRequest;
@@ -12,6 +13,7 @@ import com.davivienda.encuestas.model.Encuesta;
 import com.davivienda.encuestas.model.Pregunta;
 import com.davivienda.encuestas.model.Respuesta;
 import com.davivienda.encuestas.model.Usuario;
+import com.davivienda.encuestas.model.Opcion;
 import com.davivienda.encuestas.repository.EncuestaRepository;
 import com.davivienda.encuestas.repository.PreguntaRepository;
 import com.davivienda.encuestas.repository.RespuestaRepository;
@@ -23,7 +25,6 @@ import org.springframework.stereotype.Service;
 import java.text.Normalizer;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
@@ -52,12 +53,26 @@ public class EncuestaServiceImpl implements EncuestaService {
         encuesta = encuestaRepository.save(encuesta);
         final Encuesta encuestaFinal = encuesta;
         
-        List<Pregunta> preguntas = request.getPreguntas().stream().map(p -> Pregunta.builder()
+        List<Pregunta> preguntas = request.getPreguntas().stream().map(p -> {
+            Pregunta pregunta = Pregunta.builder()
                 .texto(p.getTexto())
                 .tipo(p.getTipo())
                 .encuesta(encuestaFinal)
-                .build()
-        ).toList();
+                .build();
+
+            if (p.getOpciones() != null) {
+                List<Opcion> opciones = p.getOpciones().stream()
+                    .map(o -> Opcion.builder()
+                        .texto(o.getTexto())
+                        .pregunta(pregunta) // importante
+                        .build())
+                    .toList();
+                pregunta.setOpciones(opciones);
+            }
+
+            return pregunta;
+        }).toList();
+
 
         preguntaRepository.saveAll(preguntas);
 
@@ -99,13 +114,25 @@ public class EncuestaServiceImpl implements EncuestaService {
         encuesta.getPreguntas().clear();
 
         // Crea nuevas preguntas y las asigna
-        List<Pregunta> nuevasPreguntas = request.getPreguntas().stream()
-                .map(p -> Pregunta.builder()
-                        .texto(p.getTexto())
-                        .tipo(p.getTipo())
-                        .encuesta(encuesta) 
+        List<Pregunta> nuevasPreguntas = request.getPreguntas().stream().map(p -> {
+            Pregunta pregunta = Pregunta.builder()
+                .texto(p.getTexto())
+                .tipo(p.getTipo())
+                .encuesta(encuesta)
+                .build();
+
+            if (p.getOpciones() != null) {
+                List<Opcion> opciones = p.getOpciones().stream()
+                    .map(o -> Opcion.builder()
+                        .texto(o.getTexto())
+                        .pregunta(pregunta)
                         .build())
-                .toList();
+                    .toList();
+                pregunta.setOpciones(opciones);
+            }
+
+            return pregunta;
+        }).toList();
 
         // Asigna las nuevas preguntas directamente
         encuesta.getPreguntas().addAll(nuevasPreguntas);
@@ -135,9 +162,24 @@ public class EncuestaServiceImpl implements EncuestaService {
 
     private EncuestaResponse toResponse(Encuesta encuesta) {
         List<PreguntaDTO> preguntas = encuesta.getPreguntas() != null
-                ? encuesta.getPreguntas().stream().map(p ->
-                new PreguntaDTO(p.getTexto(), p.getTipo())).toList()
-                : List.of();
+            ? encuesta.getPreguntas().stream().map(p -> {
+                List<OpcionDTO> opciones = p.getOpciones() != null
+                    ? p.getOpciones().stream()
+                        .map(o -> OpcionDTO.builder()
+                            .id(o.getId())
+                            .texto(o.getTexto())
+                            .build())
+                        .toList()
+                    : List.of();
+
+                return PreguntaDTO.builder()
+                    .id(p.getId())
+                    .texto(p.getTexto())
+                    .tipo(p.getTipo())
+                    .opciones(opciones)
+                    .build();
+            }).toList()
+            : List.of();
 
         return EncuestaResponse.builder()
                 .id(encuesta.getId())
@@ -147,6 +189,7 @@ public class EncuestaServiceImpl implements EncuestaService {
                 .preguntas(preguntas)
                 .build();
     }
+
 
     private String generarSlug(String titulo) {
         String normalizado = Normalizer.normalize(titulo, Normalizer.Form.NFD)
@@ -163,8 +206,24 @@ public class EncuestaServiceImpl implements EncuestaService {
                 .orElseThrow(() -> new RuntimeException("Encuesta no encontrada"));
 
         List<PreguntaDTO> preguntas = encuesta.getPreguntas().stream()
-                .map(p -> new PreguntaDTO(p.getId(), p.getTexto(), p.getTipo()))
-                .toList();
+        		.map(p -> {
+        		    List<OpcionDTO> opciones = p.getOpciones() != null
+        		        ? p.getOpciones().stream()
+        		            .map(o -> OpcionDTO.builder()
+        		                .id(o.getId())
+        		                .texto(o.getTexto())
+        		                .build())
+        		            .toList()
+        		        : List.of();
+
+        		    return PreguntaDTO.builder()
+        		        .id(p.getId())
+        		        .texto(p.getTexto())
+        		        .tipo(p.getTipo())
+        		        .opciones(opciones)
+        		        .build();
+        		})
+        	    .toList();
 
         return EncuestaPublicaResponse.builder()
                 .titulo(encuesta.getTitulo())
@@ -172,6 +231,7 @@ public class EncuestaServiceImpl implements EncuestaService {
                 .preguntas(preguntas)
                 .build();
     }
+
 
     @Override
     public void guardarRespuestas(String slug, List<RespuestaRequest> respuestas) {

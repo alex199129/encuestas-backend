@@ -30,6 +30,10 @@ public class Pregunta {
     @OneToMany(mappedBy = "pregunta", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Respuesta> respuestas = new ArrayList<>();
     
+    @Builder.Default
+    @OneToMany(mappedBy = "pregunta", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Opcion> opciones = new ArrayList<>();
+    
     public enum Tipo {
         TEXTO_CORTO,
         PARRAFO,

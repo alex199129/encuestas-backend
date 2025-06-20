@@ -13,6 +13,7 @@ public class PreguntaDTO {
     private Long id;
     private String texto;
     private Tipo tipo;
+    private List<OpcionDTO> opciones;
 
     public PreguntaDTO(String texto, Tipo tipo) {
         this.texto = texto;

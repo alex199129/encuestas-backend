@@ -30,7 +30,7 @@ public class AuthService {
                 .build();
         usuarioRepository.save(usuario);
         String jwt = jwtService.generateToken(usuario.getEmail());
-        return new AuthResponse(jwt);
+        return new AuthResponse(jwt, usuario.getNombre());
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -40,6 +40,6 @@ public class AuthService {
         Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
                 .orElseThrow();
         String jwt = jwtService.generateToken(usuario.getEmail());
-        return new AuthResponse(jwt);
+        return new AuthResponse(jwt, usuario.getNombre());
     }
 }

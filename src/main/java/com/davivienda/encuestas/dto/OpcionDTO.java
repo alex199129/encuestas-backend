@@ -7,7 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AuthResponse {
-    private String token;
-    private String usuario;
+public class OpcionDTO {
+    private Long id;
+    private String texto;
 }
